@@ -88,7 +88,7 @@ function createComponent(component, parent, owner) {
 	roots.__keys.forEach(function (key) {
 	  var node = roots[key];
 	  if (node) { // FIXED BUG: node could be removed at this moment already
-	    if (node.el) node.el.parentNode.removeChild(node.el);
+	    if (node.el && node.el.parentNode) node.el.parentNode.removeChild(node.el);
 	    else if (node.destroy) node.destroy();
 	    delete roots[key];
 	    roots.__keys = roots.__keys.filter(function(rmKey) { return rmKey !== key; });
@@ -101,7 +101,7 @@ function createComponent(component, parent, owner) {
     if (!render) return;
     var tree = nameNodes(render.apply(null, data));
     apply(parent, tree, roots);
-    afterRefresh();
+    afterRefresh(roots);
   }
 
   function removeItem(item) {
