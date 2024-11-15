@@ -138,29 +138,8 @@ function createComponent(component, parent, owner) {
       var item = oldTree[key];
       var newItem = newTree[key];
 
-      // Handle text nodes
-      if ("text" in newItem) {
-        if (item) {
-          // Update the text if it's changed.
-          if (newItem.text !== item.text) {
-            item.el.nodeValue = item.text = newItem.text;
-            // console.log("updated")
-          }
-        }
-        else {
-          // Otherwise create a new text node.
-          item = oldTree[key] = {
-            text: newItem.text,
-            el: document.createTextNode(newItem.text)
-          };
-          oldTree.__keys.push(key)
-          top.appendChild(item.el);
-          // console.log("created")
-        }
-      }
-
       // Handle tag nodes
-      else if (newItem.tagName) {
+      if (newItem.tagName) {
         // Create a new item if there isn't one
         if (!item) {
           item = oldTree[key] = {
@@ -182,7 +161,31 @@ function createComponent(component, parent, owner) {
         updateAttrs(item.el, newItem.props, item.props);
 
         if (newItem.children) {
-          apply(item.el, newItem.children, item.children);
+          // Handle text nodes:
+          //   Text nodes can be removed from the DOM by the browser,
+          // e.g. by deleting text from a contenteditable element.
+          // We therefore edit text nodes via the element containing them,
+          // otherwise the vDOM may update a node that is no longer attached
+          // to the DOM, causing missing text on screen.
+          if (newItem.children.text) {
+            if (item.children && item.children.text) {
+              // Update the text via its parent if it has changed.
+              if (item.children.text.text !== newItem.children.text.text) {
+                item.el.innerText = item.children.text.text = newItem.children.text.text;
+              }
+            } else {
+              // Otherwise create a new text node.
+              item.children = item.children || {}
+              item.children.text = {
+                text: newItem.children.text.text,
+              };
+              item.children.__keys = item.children.__keys || [];
+              item.children.__keys.push("text");
+              item.el.innerText = item.children.text.text;
+            }
+          } else {
+            apply(item.el, newItem.children, item.children);
+          }
         }
       }
 
